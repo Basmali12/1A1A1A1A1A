@@ -177,8 +177,16 @@
                 <input type="text" id="headName">
             </div>
             <div>
-                <label>عدد الأفراد</label>
+                <label>عدد الأفراد (الكلي)</label>
                 <input type="number" id="familyCount" value="0">
+            </div>
+            <div>
+                <label>مستحقين</label>
+                <input type="number" id="eligibleCount" value="0">
+            </div>
+            <div>
+                <label>محجوبين</label>
+                <input type="number" id="blockedCount" value="0">
             </div>
             <div>
                 <label>اسم الوكيل</label>
@@ -289,8 +297,10 @@
                 id: currentId || Date.now(),
                 name, cardNo,
                 familyCount: document.getElementById('familyCount').value,
+                eligibleCount: document.getElementById('eligibleCount').value, // جديد: حفظ المستحقين
+                blockedCount: document.getElementById('blockedCount').value,   // جديد: حفظ المحجوبين
                 agentName: document.getElementById('agentName').value,
-                notes: document.getElementById('notes').value, // حفظ الملاحظات
+                notes: document.getElementById('notes').value, 
                 grid: gridData,
                 updatedAt: new Date().toISOString()
             };
@@ -373,8 +383,10 @@
             document.getElementById('headName').value = d.name;
             document.getElementById('cardNumber').value = d.cardNo;
             document.getElementById('familyCount').value = d.familyCount;
+            document.getElementById('eligibleCount').value = d.eligibleCount || 0; // جديد: تحميل المستحقين
+            document.getElementById('blockedCount').value = d.blockedCount || 0;   // جديد: تحميل المحجوبين
             document.getElementById('agentName').value = d.agentName;
-            document.getElementById('notes').value = d.notes || ''; // تحميل الملاحظات
+            document.getElementById('notes').value = d.notes || ''; 
             
             document.querySelectorAll('.check-btn').forEach(b => b.classList.remove('checked'));
             if (d.grid) {
@@ -392,6 +404,8 @@
             document.getElementById('headName').value = '';
             document.getElementById('cardNumber').value = '';
             document.getElementById('familyCount').value = 0;
+            document.getElementById('eligibleCount').value = 0; // جديد: تصفير المستحقين
+            document.getElementById('blockedCount').value = 0;  // جديد: تصفير المحجوبين
             document.getElementById('notes').value = '';
             document.querySelectorAll('.check-btn').forEach(b => b.classList.remove('checked'));
         }
