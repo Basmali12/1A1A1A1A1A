@@ -23,18 +23,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- تفعيل وضع الأوفلاين (العمل بدون نت) ---
-enableIndexedDbPersistence(db)
-    .then(() => {
-        console.log("✅ تم تفعيل وضع الأوفلاين بنجاح");
-    })
-    .catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.log("⚠️ فشل تفعيل الأوفلاين: ربما هناك تبويبات أخرى مفتوحة");
-        } else if (err.code == 'unimplemented') {
-            console.log("⚠️ المتصفح لا يدعم هذه الميزة");
-        }
-    });
+// --- تفعيل وضع الأوفلاين (الحفظ في الهاتف) ---
+// هذه الخطوة تضمن أن البيانات تُحفظ محلياً أولاً
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.log("⚠️ تعدد التبويبات قد يعيق الحفظ المؤقت");
+    } else if (err.code == 'unimplemented') {
+        console.log("⚠️ المتصفح لا يدعم الحفظ المحلي");
+    }
+});
 
 const familiesCol = collection(db, 'families');
 
@@ -98,19 +95,23 @@ window.installApp = async function() {
 async function fetchDataFromFirestore() {
     document.getElementById('connectionStatus').innerText = 'جاري التحديث... ⏳';
     try {
-        // هذه الدالة الآن ستجلب البيانات من الذاكرة المحلية إذا لم يوجد نت
+        // جلب البيانات (سواء من السيرفر أو من ذاكرة الهاتف)
         const snapshot = await getDocs(familiesCol);
         localDataCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateDashboard();
         handleSearch({ target: { value: '' } });
-        document.getElementById('connectionStatus').innerText = 'النظام يعمل (متزامن) ✅';
+        
+        if (navigator.onLine) {
+            document.getElementById('connectionStatus').innerText = 'متصل (تزامن تلقائي) ✅';
+        } else {
+            document.getElementById('connectionStatus').innerText = 'وضع الأوفلاين (محفوظ محلياً) 📱';
+        }
     } catch (e) {
         console.error(e);
-        // حتى لو فشل الاتصال، سنحاول العرض من الكاش المحلي
+        // في حال حدوث خطأ، نعرض البيانات المخزنة مؤقتاً في المتغيرات
         if(localDataCache.length > 0) {
-            document.getElementById('connectionStatus').innerText = 'وضع الأوفلاين ⚠️';
-        } else {
-            document.getElementById('connectionStatus').innerText = 'خطأ في الاتصال ❌';
+            updateDashboard();
+            document.getElementById('connectionStatus').innerText = 'عرض البيانات المحلية ⚠️';
         }
     }
 }
@@ -141,33 +142,37 @@ window.saveData = async function() {
     };
 
     try {
+        // منطق الحفظ الذكي
         if (currentId) {
             const docRef = doc(db, "families", currentId);
-            await updateDoc(docRef, record);
+            // لا نستخدم await هنا لتعليق الواجهة، بل نترك فايربيس يدير الأمر
+            updateDoc(docRef, record);
         } else {
-            await addDoc(familiesCol, record);
+            addDoc(familiesCol, record);
         }
         
-        // رسالة ذكية حسب حالة الاتصال
+        // رسالة فورية للمستخدم
         if (navigator.onLine) {
-            alert('✅ تم الحفظ في السحابة');
+            alert('✅ تم الحفظ السحابي بنجاح');
         } else {
-            alert('⚠️ لا يوجد إنترنت: تم الحفظ في جهازك وسيتم الرفع تلقائياً عند عودة النت');
+            alert('📱 لا يوجد إنترنت: تم الحفظ في الهاتف وسيتم الرفع تلقائياً عند الاتصال');
         }
         
         clearForm();
+        // تحديث العرض فوراً (حتى لو لم يكتمل الرفع)
         fetchDataFromFirestore(); 
+        
     } catch (e) {
-        console.error(e);
-        alert('❌ حدث خطأ غير متوقع');
+        console.error("Save Error:", e);
+        alert('❌ حدث خطأ غير متوقع، تأكد من المساحة أو المتصفح');
     }
 };
 
 window.deleteCurrent = async function() {
     if(!currentId || !confirm('هل أنت متأكد من الحذف؟')) return;
     try {
-        await deleteDoc(doc(db, "families", currentId));
-        alert('تم الحذف');
+        deleteDoc(doc(db, "families", currentId));
+        alert('تم حذف السجل');
         clearForm();
         fetchDataFromFirestore();
     } catch (e) {
