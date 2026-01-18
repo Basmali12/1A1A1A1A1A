@@ -1,7 +1,16 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    doc, 
+    updateDoc, 
+    deleteDoc,
+    enableIndexedDbPersistence 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- Firebase Config ---
+// --- إعدادات فايربيس ---
 const firebaseConfig = {
     apiKey: "AIzaSyC2zYRUlv-fDsHBVXzAD1w_JTEpR9K8OAg",
     authDomain: "gnsea-6852f.firebaseapp.com",
@@ -13,13 +22,27 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// --- تفعيل وضع الأوفلاين (العمل بدون نت) ---
+enableIndexedDbPersistence(db)
+    .then(() => {
+        console.log("✅ تم تفعيل وضع الأوفلاين بنجاح");
+    })
+    .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.log("⚠️ فشل تفعيل الأوفلاين: ربما هناك تبويبات أخرى مفتوحة");
+        } else if (err.code == 'unimplemented') {
+            console.log("⚠️ المتصفح لا يدعم هذه الميزة");
+        }
+    });
+
 const familiesCol = collection(db, 'families');
 
 // --- متغيرات النظام ---
 const items = ["الرز", "السكر", "الزيت", "المعجون", "البقوليات", "الطحين", "رعاية"];
-let currentId = null; // سيحمل ID المستند في فايربيس
-let localDataCache = []; // لتسريع البحث وعرض الإحصائيات
-let deferredPrompt; // لتثبيت التطبيق
+let currentId = null; 
+let localDataCache = []; 
+let deferredPrompt; 
 
 // --- عند التحميل ---
 window.onload = async function() {
@@ -27,27 +50,24 @@ window.onload = async function() {
     document.getElementById('dateToday').innerText = new Date().toLocaleDateString('ar-IQ');
     document.getElementById('printDate').innerText = new Date().toLocaleDateString('ar-IQ');
     
-    // إخفاء المحتوى حتى ادخال الرمز
     document.querySelector('.bottom-nav').style.display = 'none';
-    
-    // مستمع البحث
     document.getElementById('searchInput').addEventListener('input', handleSearch);
 };
 
-// --- نظام الحماية (رمز 1972) ---
+// --- نظام الحماية ---
 window.checkPin = function() {
     const pin = document.getElementById('pinInput').value;
     if (pin === '1972') {
         document.getElementById('loginOverlay').style.display = 'none';
         document.querySelector('.bottom-nav').style.display = 'flex';
-        fetchDataFromFirestore(); // جلب البيانات عند الدخول
+        fetchDataFromFirestore(); 
     } else {
         alert('❌ الرمز خطأ');
         document.getElementById('pinInput').value = '';
     }
 };
 
-// --- نظام التبويبات ---
+// --- التبويبات ---
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
@@ -73,25 +93,28 @@ window.installApp = async function() {
     }
 };
 
-// --- دوال Firestore (قاعدة البيانات) ---
+// --- دوال قاعدة البيانات (معدلة لتعمل أوفلاين) ---
 
-// 1. جلب البيانات
 async function fetchDataFromFirestore() {
     document.getElementById('connectionStatus').innerText = 'جاري التحديث... ⏳';
     try {
+        // هذه الدالة الآن ستجلب البيانات من الذاكرة المحلية إذا لم يوجد نت
         const snapshot = await getDocs(familiesCol);
         localDataCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateDashboard();
-        handleSearch({ target: { value: '' } }); // تحديث قائمة البحث
-        document.getElementById('connectionStatus').innerText = 'متصل بـ Firestore ✅';
+        handleSearch({ target: { value: '' } });
+        document.getElementById('connectionStatus').innerText = 'النظام يعمل (متزامن) ✅';
     } catch (e) {
         console.error(e);
-        document.getElementById('connectionStatus').innerText = 'خطأ في الاتصال ❌';
-        alert('تنبيه: تأكد من اتصال الانترنت للعمل مع قاعدة البيانات');
+        // حتى لو فشل الاتصال، سنحاول العرض من الكاش المحلي
+        if(localDataCache.length > 0) {
+            document.getElementById('connectionStatus').innerText = 'وضع الأوفلاين ⚠️';
+        } else {
+            document.getElementById('connectionStatus').innerText = 'خطأ في الاتصال ❌';
+        }
     }
 }
 
-// 2. الحفظ (إضافة أو تعديل)
 window.saveData = async function() {
     const name = document.getElementById('headName').value;
     const cardNo = document.getElementById('cardNumber').value;
@@ -119,26 +142,29 @@ window.saveData = async function() {
 
     try {
         if (currentId) {
-            // تحديث
             const docRef = doc(db, "families", currentId);
             await updateDoc(docRef, record);
-            alert('✅ تم تحديث البيانات في السحابة');
         } else {
-            // جديد
             await addDoc(familiesCol, record);
-            alert('✅ تم حفظ سجل جديد في السحابة');
         }
+        
+        // رسالة ذكية حسب حالة الاتصال
+        if (navigator.onLine) {
+            alert('✅ تم الحفظ في السحابة');
+        } else {
+            alert('⚠️ لا يوجد إنترنت: تم الحفظ في جهازك وسيتم الرفع تلقائياً عند عودة النت');
+        }
+        
         clearForm();
-        fetchDataFromFirestore(); // إعادة تحميل البيانات
+        fetchDataFromFirestore(); 
     } catch (e) {
         console.error(e);
-        alert('❌ حدث خطأ أثناء الحفظ في قاعدة البيانات');
+        alert('❌ حدث خطأ غير متوقع');
     }
 };
 
-// 3. الحذف
 window.deleteCurrent = async function() {
-    if(!currentId || !confirm('هل أنت متأكد من حذف هذا السجل نهائياً من قاعدة البيانات؟')) return;
+    if(!currentId || !confirm('هل أنت متأكد من الحذف؟')) return;
     try {
         await deleteDoc(doc(db, "families", currentId));
         alert('تم الحذف');
@@ -149,7 +175,7 @@ window.deleteCurrent = async function() {
     }
 };
 
-// --- المنطق القديم (واجهة المستخدم) ---
+// --- وظائف الواجهة ---
 
 function renderTable() {
     const tbody = document.querySelector('#rationTable tbody');
@@ -165,7 +191,6 @@ function renderTable() {
     });
 }
 
-// جعل الدوال متاحة للـ HTML (لان type=module يجعلها خاصة)
 window.toggleCheck = function(el) { el.classList.toggle('checked'); }
 
 window.toggleRow = function(rowIndex) {
@@ -195,7 +220,6 @@ function handleSearch(e) {
     const res = document.getElementById('searchResults');
     res.innerHTML = '';
     
-    // عرض الكل اذا كان البحث فارغاً في تبويب البحث
     let dataToShow = localDataCache;
     if (q.length > 0) {
         dataToShow = localDataCache.filter(d => d.name.includes(q) || d.cardNo.includes(q));
@@ -227,7 +251,6 @@ function loadRecord(d) {
             if(cell) cell.classList.add('checked');
         }
     }
-    // الانتقال للرئيسية
     window.switchTab('tabHome', document.querySelectorAll('.nav-btn')[0]);
 }
 
@@ -246,7 +269,6 @@ window.printReceipt = function() {
     window.print();
 };
 
-// تصدير واستيراد النسخ المحلية (JSON) كخيار احتياطي
 window.exportData = function() {
     const data = JSON.stringify(localDataCache);
     const blob = new Blob([data], {type: 'application/json'});
@@ -258,7 +280,7 @@ window.exportData = function() {
 };
 
 window.importData = function(input) {
-    alert('تنبيه: الاستيراد هنا للعرض فقط، لن يتم رفعه لقاعدة البيانات تلقائياً للحفاظ على سلامة البيانات.');
+    alert('تنبيه: الاستيراد هنا للعرض فقط.');
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
