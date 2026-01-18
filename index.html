@@ -2,428 +2,144 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>نظام الوكيل الذكي 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --text-color: #ffffff;
-            --accent-color: #00d2ff;
-            --success-color: #00ff88;
-            --input-bg: rgba(0, 0, 0, 0.4);
-        }
-
-        body {
-            font-family: 'Tajawal', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #1e3c72, #2a5298, #0f2027);
-            color: var(--text-color);
-            min-height: 100vh;
-        }
-
-        /* تنسيق الزجاج */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
-            transition: 0.3s;
-        }
-
-        /* لوحة الإحصائيات */
-        .dashboard-stats {
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .stat-box h3 { margin: 0; font-size: 2em; color: var(--accent-color); }
-        .stat-box p { margin: 0; color: #ccc; font-size: 0.9em; }
-
-        /* الحقول */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        /* حقل الملاحظات */
-        .full-width { grid-column: 1 / -1; }
-        
-        label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em; }
-        
-        input, select, textarea {
-            width: 90%;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--glass-border);
-            background: var(--input-bg);
-            color: white;
-            outline: none;
-            font-family: 'Tajawal', sans-serif;
-        }
-        
-        input:focus, textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(0, 210, 255, 0.3); }
-
-        /* الجدول */
-        .table-container { overflow-x: auto; border-radius: 15px; background: rgba(0,0,0,0.2); }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
-        th, td { padding: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        
-        /* ميزة النقر على اسم المادة */
-        .row-header { cursor: pointer; transition: 0.2s; user-select: none; }
-        .row-header:hover { color: var(--success-color); background: rgba(255,255,255,0.1); }
-        .row-header::after { content: ' 🔽'; font-size: 0.7em; opacity: 0.5; }
-
-        /* أزرار التشيك */
-        .check-btn {
-            width: 28px; height: 28px; border-radius: 6px; border: 2px solid #555;
-            background: transparent; cursor: pointer; display: inline-block;
-        }
-        .check-btn.checked {
-            background: var(--success-color); border-color: var(--success-color);
-            box-shadow: 0 0 8px var(--success-color);
-        }
-        .check-btn.checked::after { content: '✔'; color: #000; font-weight: bold; display: flex; justify-content: center; align-items: center; height: 100%; }
-
-        /* البحث */
-        .search-area { position: relative; margin-bottom: 20px; }
-        .search-results {
-            position: absolute; top: 100%; width: 95%; left: 2.5%;
-            background: #1a1a2e; border: 1px solid #444; z-index: 100;
-            max-height: 250px; overflow-y: auto; display: none; border-radius: 0 0 10px 10px;
-        }
-        .search-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; }
-        .search-item:hover { background: var(--accent-color); color: #000; }
-
-        /* الأزرار */
-        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
-        button {
-            padding: 10px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
-            font-family: 'Tajawal'; transition: transform 0.2s;
-        }
-        button:active { transform: scale(0.95); }
-        .btn-save { background: #00b894; color: white; }
-        .btn-new { background: #0984e3; color: white; }
-        .btn-backup { background: #6c5ce7; color: white; }
-        .btn-print { background: #e17055; color: white; }
-        .btn-del { background: #d63031; color: white; }
-
-        /* --- تخصيص الطباعة (وصل الاستلام) --- */
-        @media print {
-            body { background: white; color: black; padding: 0; }
-            .glass-panel { box-shadow: none; border: 1px solid #000; background: white; border-radius: 0; }
-            .actions, .search-area, .dashboard-stats, #backupControls { display: none !important; }
-            input, textarea { border: none; background: transparent; color: black; padding: 0; width: auto; font-weight: bold; }
-            table { border: 1px solid #000; color: black; }
-            th, td { border: 1px solid #000; color: black; }
-            th { background-color: #eee !important; -webkit-print-color-adjust: exact; }
-            .check-btn { border: 1px solid #000; }
-            .check-btn.checked { background: #000 !important; -webkit-print-color-adjust: exact; }
-            .check-btn.checked::after { color: white; }
-            
-            /* ترويسة الوصل */
-            .print-header { display: block !important; text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 10px; }
-            h2 { font-size: 1.2em; }
-        }
-        .print-header { display: none; }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
-    <div class="glass-panel">
-        <div class="dashboard-stats">
-            <div class="stat-box">
-                <h3 id="totalFamilies">0</h3>
-                <p>عدد العوائل</p>
-            </div>
-            <div class="stat-box">
-                <h3 id="totalIndividuals">0</h3>
-                <p>إجمالي الأفراد</p>
-            </div>
-            <div class="stat-box">
-                <h3 id="dateToday">--</h3>
-                <p>تاريخ اليوم</p>
+    <div id="loginOverlay">
+        <h2>🔒 نظام الوكيل الذكي</h2>
+        <p>يرجى إدخال رمز الدخول</p>
+        <input type="password" id="pinInput" placeholder="الرمز" maxlength="4">
+        <button onclick="checkPin()" style="margin-top: 20px; background: var(--accent-color); color: #000;">دخول</button>
+    </div>
+
+    <div id="tabHome" class="tab-content active">
+        <div class="glass-panel">
+            <div class="dashboard-stats">
+                <div class="stat-box">
+                    <h3 id="totalFamilies">0</h3>
+                    <p>العوائل</p>
+                </div>
+                <div class="stat-box">
+                    <h3 id="totalIndividuals">0</h3>
+                    <p>الأفراد</p>
+                </div>
+                <div class="stat-box">
+                    <h3 id="dateToday">--</h3>
+                    <p>التاريخ</p>
+                </div>
             </div>
         </div>
-        <div class="search-area" style="text-align: center;">
-            <input type="text" id="searchInput" placeholder="🔍 ابحث بالاسم أو رقم البطاقة..." style="width: 60%; text-align: center;">
-            <div id="searchResults" class="search-results"></div>
+
+        <div class="glass-panel" id="printArea">
+            <div class="print-header">
+                <h1>وزارة التجارة - وصل تجهيز وكيل</h1>
+                <p>تاريخ الطباعة: <span id="printDate"></span></p>
+            </div>
+
+            <h2 style="text-align: center; margin-bottom: 20px;">بطاقة المواد الغذائية 2026</h2>
+            
+            <div class="form-grid">
+                <div>
+                    <label>رقم البطاقة التموينية</label>
+                    <input type="text" id="cardNumber">
+                </div>
+                <div>
+                    <label>اسم رب الأسرة</label>
+                    <input type="text" id="headName">
+                </div>
+                <div>
+                    <label>عدد الأفراد (الكلي)</label>
+                    <input type="number" id="familyCount" value="0">
+                </div>
+                <div>
+                    <label>مستحقين</label>
+                    <input type="number" id="eligibleCount" value="0">
+                </div>
+                <div>
+                    <label>محجوبين</label>
+                    <input type="number" id="blockedCount" value="0">
+                </div>
+                <div>
+                    <label>اسم الوكيل</label>
+                    <input type="text" id="agentName" value="ساجدة كردي علي">
+                </div>
+                <div class="full-width">
+                    <label>ملاحظات الوكيل</label>
+                    <textarea id="notes" rows="2" placeholder="ملاحظات..."></textarea>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="rationTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%">المادة</th>
+                            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+                            <th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div style="display: none; justify-content: space-between; margin-top: 30px;" class="print-only">
+                <div>توقيع الوكيل</div>
+                <div>توقيع المستلم</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-new" onclick="clearForm()">📄 جديد</button>
+            <button class="btn-save" onclick="saveData()">💾 حفظ (سحابي)</button>
+            <button class="btn-print" onclick="printReceipt()">🖨️ طباعة</button>
+            <button class="btn-del" onclick="deleteCurrent()">🗑️ حذف</button>
         </div>
     </div>
 
-    <div class="glass-panel" id="printArea">
-        <div class="print-header">
-            <h1>وزارة التجارة - وصل تجهيز وكيل</h1>
-            <p>تاريخ الطباعة: <span id="printDate"></span></p>
-        </div>
-
-        <h2 style="text-align: center; margin-bottom: 20px;">بطاقة المواد الغذائية 2026</h2>
-        
-        <div class="form-grid">
-            <div>
-                <label>رقم البطاقة التموينية</label>
-                <input type="text" id="cardNumber">
+    <div id="tabSearch" class="tab-content">
+        <div class="glass-panel">
+            <h2 style="text-align: center;">🔍 سجل العوائل</h2>
+            <div class="search-area">
+                <input type="text" id="searchInput" placeholder="ابحث بالاسم أو الرقم..." style="width: 100%; text-align: center;">
             </div>
-            <div>
-                <label>اسم رب الأسرة</label>
-                <input type="text" id="headName">
-            </div>
-            <div>
-                <label>عدد الأفراد (الكلي)</label>
-                <input type="number" id="familyCount" value="0">
-            </div>
-            <div>
-                <label>مستحقين</label>
-                <input type="number" id="eligibleCount" value="0">
-            </div>
-            <div>
-                <label>محجوبين</label>
-                <input type="number" id="blockedCount" value="0">
-            </div>
-            <div>
-                <label>اسم الوكيل</label>
-                <input type="text" id="agentName" value="ساجدة كردي علي">
-            </div>
-            <div class="full-width">
-                <label>ملاحظات الوكيل</label>
-                <textarea id="notes" rows="2" placeholder="اكتب أي ملاحظات هنا (مثل: نقص مواد، مسافر...)"></textarea>
-            </div>
-        </div>
-
-        <div class="table-container">
-            <table id="rationTable">
-                <thead>
-                    <tr>
-                        <th style="width: 15%">المادة</th>
-                        <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
-                        <th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        
-        <div style="display: none; justify-content: space-between; margin-top: 30px;" class="print-only">
-            <div>توقيع الوكيل</div>
-            <div>توقيع المستلم</div>
+            <div id="searchResults" class="search-results" style="display: block; position: static;"></div>
         </div>
     </div>
 
-    <div class="actions">
-        <button class="btn-new" onclick="clearForm()">📄 جديد</button>
-        <button class="btn-save" onclick="saveData()">💾 حفظ</button>
-        <button class="btn-print" onclick="printReceipt()">🖨️ طباعة وصل</button>
-        <button class="btn-del" onclick="deleteCurrent()">🗑️ حذف</button>
+    <div id="tabSettings" class="tab-content">
+        <div class="glass-panel" id="backupControls" style="text-align: center;">
+            <h4 style="margin-top: 0;">🛠️ أدوات النظام</h4>
+            <p>حالة الاتصال: <span id="connectionStatus" style="color: var(--success-color);">متصل بـ Firestore ✅</span></p>
+            <hr style="border-color: var(--glass-border);">
+            
+            <button class="btn-install" id="installBtn" onclick="installApp()">📲 تثبيت التطبيق</button>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn-backup" onclick="exportData()">⬇️ تصدير محلي (JSON)</button>
+                <br><br>
+                <button class="btn-backup" onclick="document.getElementById('fileInput').click()">⬆️ استيراد محلي</button>
+                <input type="file" id="fileInput" style="display: none" onchange="importData(this)">
+            </div>
+        </div>
     </div>
 
-    <div class="glass-panel" id="backupControls" style="text-align: center; margin-top: 20px;">
-        <h4 style="margin-top: 0;">🛠️ أدوات النظام</h4>
-        <button class="btn-backup" onclick="exportData()">⬇️ تحميل نسخة احتياطية</button>
-        <button class="btn-backup" onclick="document.getElementById('fileInput').click()">⬆️ استعادة نسخة</button>
-        <input type="file" id="fileInput" style="display: none" onchange="importData(this)">
+    <div class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('tabHome', this)">
+            <span>🏠</span> الرئيسية
+        </button>
+        <button class="nav-btn" onclick="switchTab('tabSearch', this)">
+            <span>🔍</span> البحث
+        </button>
+        <button class="nav-btn" onclick="switchTab('tabSettings', this)">
+            <span>⚙️</span> الإعدادات
+        </button>
     </div>
 
-    <script>
-        const items = ["الرز", "السكر", "الزيت", "المعجون", "البقوليات", "الطحين", "رعاية"];
-        let currentId = null;
-
-        window.onload = function() {
-            renderTable();
-            updateDashboard();
-            document.getElementById('dateToday').innerText = new Date().toLocaleDateString('ar-IQ');
-            document.getElementById('printDate').innerText = new Date().toLocaleDateString('ar-IQ');
-            document.getElementById('searchInput').addEventListener('input', handleSearch);
-        };
-
-        // رسم الجدول مع ميزة النقر على الرأس
-        function renderTable() {
-            const tbody = document.querySelector('#rationTable tbody');
-            tbody.innerHTML = '';
-            items.forEach((item, rIndex) => {
-                let row = `<tr>
-                    <td class="row-header" onclick="toggleRow(${rIndex})" title="اضغط لتحديد الكل">${item}</td>`;
-                for (let i = 1; i <= 12; i++) {
-                    row += `<td><div class="check-btn" id="cell_${rIndex}_${i}" onclick="toggleCheck(this)"></div></td>`;
-                }
-                row += `</tr>`;
-                tbody.innerHTML += row;
-            });
-        }
-
-        function toggleCheck(el) { el.classList.toggle('checked'); }
-
-        // ميزة 1: تحديد صف كامل
-        function toggleRow(rowIndex) {
-            let allChecked = true;
-            // فحص هل الصف محدد بالكامل؟
-            for (let i = 1; i <= 12; i++) {
-                if (!document.getElementById(`cell_${rowIndex}_${i}`).classList.contains('checked')) {
-                    allChecked = false;
-                    break;
-                }
-            }
-            // العكس
-            for (let i = 1; i <= 12; i++) {
-                const cell = document.getElementById(`cell_${rowIndex}_${i}`);
-                if (allChecked) cell.classList.remove('checked');
-                else cell.classList.add('checked');
-            }
-        }
-
-        // الحفظ
-        function saveData() {
-            const name = document.getElementById('headName').value;
-            const cardNo = document.getElementById('cardNumber').value;
-            if (!name || !cardNo) { alert('يرجى كتابة الاسم ورقم البطاقة'); return; }
-
-            let gridData = {};
-            items.forEach((item, rIndex) => {
-                for (let c = 1; c <= 12; c++) {
-                    if (document.getElementById(`cell_${rIndex}_${c}`).classList.contains('checked')) {
-                        gridData[`${rIndex}_${c}`] = true;
-                    }
-                }
-            });
-
-            const record = {
-                id: currentId || Date.now(),
-                name, cardNo,
-                familyCount: document.getElementById('familyCount').value,
-                eligibleCount: document.getElementById('eligibleCount').value, // جديد: حفظ المستحقين
-                blockedCount: document.getElementById('blockedCount').value,   // جديد: حفظ المحجوبين
-                agentName: document.getElementById('agentName').value,
-                notes: document.getElementById('notes').value, 
-                grid: gridData,
-                updatedAt: new Date().toISOString()
-            };
-
-            let allData = JSON.parse(localStorage.getItem('rationData') || '[]');
-            if (currentId) allData = allData.filter(d => d.id !== currentId);
-            
-            allData.push(record);
-            localStorage.setItem('rationData', JSON.stringify(allData));
-            currentId = record.id;
-            
-            updateDashboard();
-            alert('✅ تم الحفظ');
-        }
-
-        // ميزة 2: تحديث لوحة الإحصائيات
-        function updateDashboard() {
-            const allData = JSON.parse(localStorage.getItem('rationData') || '[]');
-            document.getElementById('totalFamilies').innerText = allData.length;
-            
-            let individuals = 0;
-            allData.forEach(d => individuals += parseInt(d.familyCount || 0));
-            document.getElementById('totalIndividuals').innerText = individuals;
-        }
-
-        // ميزة 4: النسخ الاحتياطي (تصدير)
-        function exportData() {
-            const data = localStorage.getItem('rationData');
-            if (!data) { alert('لا توجد بيانات للتصدير'); return; }
-            const blob = new Blob([data], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ration_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-        }
-
-        // ميزة 4: استعادة (استيراد)
-        function importData(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    JSON.parse(e.target.result); // Check validity
-                    localStorage.setItem('rationData', e.target.result);
-                    alert('✅ تم استرجاع البيانات بنجاح! سيتم تحديث الصفحة.');
-                    location.reload();
-                } catch(err) {
-                    alert('❌ ملف خاطئ');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // البحث والتحميل
-        function handleSearch(e) {
-            const q = e.target.value.toLowerCase();
-            const res = document.getElementById('searchResults');
-            const data = JSON.parse(localStorage.getItem('rationData') || '[]');
-            res.innerHTML = '';
-            
-            if (q.length < 1) { res.style.display = 'none'; return; }
-
-            const filtered = data.filter(d => d.name.includes(q) || d.cardNo.includes(q));
-            if (filtered.length > 0) {
-                res.style.display = 'block';
-                filtered.forEach(d => {
-                    const div = document.createElement('div');
-                    div.className = 'search-item';
-                    div.innerText = `${d.name} (${d.cardNo})`;
-                    div.onclick = () => loadRecord(d);
-                    res.appendChild(div);
-                });
-            } else res.style.display = 'none';
-        }
-
-        function loadRecord(d) {
-            currentId = d.id;
-            document.getElementById('headName').value = d.name;
-            document.getElementById('cardNumber').value = d.cardNo;
-            document.getElementById('familyCount').value = d.familyCount;
-            document.getElementById('eligibleCount').value = d.eligibleCount || 0; // جديد: تحميل المستحقين
-            document.getElementById('blockedCount').value = d.blockedCount || 0;   // جديد: تحميل المحجوبين
-            document.getElementById('agentName').value = d.agentName;
-            document.getElementById('notes').value = d.notes || ''; 
-            
-            document.querySelectorAll('.check-btn').forEach(b => b.classList.remove('checked'));
-            if (d.grid) {
-                for (const k in d.grid) {
-                    const cell = document.getElementById(`cell_${k}`);
-                    if(cell) cell.classList.add('checked');
-                }
-            }
-            document.getElementById('searchResults').style.display = 'none';
-            document.getElementById('searchInput').value = '';
-        }
-
-        function clearForm() {
-            currentId = null;
-            document.getElementById('headName').value = '';
-            document.getElementById('cardNumber').value = '';
-            document.getElementById('familyCount').value = 0;
-            document.getElementById('eligibleCount').value = 0; // جديد: تصفير المستحقين
-            document.getElementById('blockedCount').value = 0;  // جديد: تصفير المحجوبين
-            document.getElementById('notes').value = '';
-            document.querySelectorAll('.check-btn').forEach(b => b.classList.remove('checked'));
-        }
-        
-        function deleteCurrent() {
-            if(!currentId || !confirm('حذف السجل؟')) return;
-            let data = JSON.parse(localStorage.getItem('rationData') || '[]');
-            data = data.filter(d => d.id !== currentId);
-            localStorage.setItem('rationData', JSON.stringify(data));
-            clearForm();
-            updateDashboard();
-            alert('تم الحذف');
-        }
-
-        // ميزة 5: طباعة الوصل
-        function printReceipt() {
-            window.print();
-        }
-    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
